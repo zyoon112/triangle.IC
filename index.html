@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>삼각형의 내심과 그 성질 탐구하기</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- MathJax for rendering math notation -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            },
+            svg: {
+                fontCache: 'global'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #1a3c27;
+            color: #f0f4f1;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .chalkboard-font {
+            font-family: 'Jua', sans-serif;
+        }
+
+        /* 칠판 질감 및 테두리 */
+        .board-container {
+            background-color: #234d32;
+            border: 12px solid #5c3a21;
+            border-radius: 12px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6), 0 10px 20px rgba(0,0,0,0.4);
+        }
+
+        .chalk-text {
+            color: #ffffff;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.7);
+        }
+
+        .chalk-yellow {
+            color: #ffeb3b;
+            text-shadow: 0 0 2px rgba(255, 235, 59, 0.7);
+        }
+
+        .chalk-pink {
+            color: #ff80ab;
+            text-shadow: 0 0 2px rgba(255, 128, 171, 0.7);
+        }
+
+        .chalk-cyan {
+            color: #80deea;
+            text-shadow: 0 0 2px rgba(128, 222, 234, 0.7);
+        }
+
+        /* 깜빡이는 애니메이션 */
+        @keyframes chalk-blink {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px #ffeb3b); }
+            50% { opacity: 0.3; filter: drop-shadow(0 0 1px #ffeb3b); }
+        }
+
+        .blink-target {
+            animation: chalk-blink 1.2s infinite ease-in-out;
+            cursor: pointer;
+        }
+
+        /* SVG 인터랙티브 요소 스타일 */
+        .point-node {
+            cursor: pointer;
+            transition: fill 0.2s ease;
+        }
+
+        /* 모눈 배경 */
+        .infinite-grid {
+            cursor: grab;
+        }
+        .infinite-grid:active {
+            cursor: grabbing;
+        }
+
+        /* 커스텀 스크롤바 */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col p-2 sm:p-4 box-border select-none">
+
+    <!-- 상단 헤더 -->
+    <header class="flex-none mb-2 text-center relative">
+        <div class="text-base sm:text-xl chalk-cyan chalkboard-font font-light tracking-wider mb-0.5 opacity-90">
+            지윤쌤이 만든
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-medium chalkboard-font chalk-yellow tracking-wide">
+            삼각형의 내심과 그 성질 탐구하기
+        </h1>
+    </header>
+
+    <!-- 메인 레이아웃 (좌: 설명 패널, 우: 모눈패드) -->
+    <main class="flex-1 flex flex-col md:flex-row gap-3 min-h-0 overflow-hidden">
+        
+        <!-- 좌측: 단계별 설명 패널 -->
+        <section class="w-full md:w-4/12 lg:w-3/12 flex-none board-container p-3 sm:p-4 flex flex-col justify-between overflow-y-auto custom-scroll">
+            <div>
+                <div class="flex justify-between items-center mb-2.5 border-b border-green-700/60 pb-2">
+                    <span id="step-badge" class="bg-yellow-400 text-black font-bold px-3 py-1 rounded-full text-xs sm:text-sm chalkboard-font">
+                        1단계 / 5단계
+                    </span>
+                    <button id="reset-btn" onclick="resetApp()" class="text-xs sm:text-sm bg-red-800 hover:bg-red-700 text-white px-2.5 py-1.5 rounded transition shadow border border-red-500 font-bold">
+                        🔄 처음부터 다시
+                    </button>
+                </div>
+
+                <!-- 1~5단계 인디케이터 -->
+                <div class="grid grid-cols-5 gap-1 mb-3 text-center text-xs sm:text-sm font-bold chalkboard-font">
+                    <div id="step-ind-1" class="py-1 rounded bg-yellow-400 text-black border border-yellow-200 shadow-sm">1단계</div>
+                    <div id="step-ind-2" class="py-1 rounded bg-green-900/80 text-gray-400 border border-green-700">2단계</div>
+                    <div id="step-ind-3" class="py-1 rounded bg-green-900/80 text-gray-400 border border-green-700">3단계</div>
+                    <div id="step-ind-4" class="py-1 rounded bg-green-900/80 text-gray-400 border border-green-700">4단계</div>
+                    <div id="step-ind-5" class="py-1 rounded bg-green-900/80 text-gray-400 border border-green-700">5단계</div>
+                </div>
+
+                <h2 id="step-title" class="text-xl sm:text-2xl font-medium chalk-yellow mb-2.5 chalkboard-font leading-snug">
+                    1. 세 꼭짓점을 찍어서 삼각형 그리기
+                </h2>
+
+                <div id="step-desc" class="text-sm sm:text-base leading-relaxed text-gray-100 space-y-2 mb-3.5">
+                    모눈 칠판 위에서 서로 다른 위치에 점 3개를 찍어 삼각형 ABC를 완성하세요.<br>
+                    <span class="text-xs sm:text-sm text-yellow-200 block mt-1">※ 휠/핀치 동작으로 모눈판 확대/축소가 가능합니다.</span>
+                </div>
+
+                <!-- 단계별 가이드 박스 -->
+                <div id="guide-box" class="bg-black/30 p-3 rounded-lg border border-green-600/50 text-sm sm:text-base space-y-1.5">
+                    <p class="text-emerald-300 font-semibold text-sm sm:text-base">📍 진행 상황</p>
+                    <p id="progress-text" class="text-sm sm:text-base font-medium">꼭짓점을 찍어주세요 (0/3)</p>
+                </div>
+
+                <!-- 탐구 완료 후 내심 성질 요약 카드 -->
+                <div id="summary-card" class="hidden mt-3 bg-emerald-900/60 border-2 border-yellow-400 p-3 rounded-lg text-sm sm:text-base chalk-text animate-fade-in space-y-2">
+                    <h3 class="font-bold text-yellow-300 text-base sm:text-lg border-b border-emerald-600 pb-1">💡 삼각형의 내심 성질 정리</h3>
+                    <p>1. 삼각형의 세 내각의 이등분선은 한 점 $I$(내심)에서 만난다.</p>
+                    <p>2. 점 $I$에서 세 변에 내린 수선의 길이는 모두 같다.<br>
+                       $(\overline{ID} = \overline{IE} = \overline{IF})$
+                    </p>
+                    <p>3. 점 $I$를 중심으로 세 변에 접하는 내접원을 그릴 수 있다.</p>
+                </div>
+            </div>
+
+            <!-- 하단 조작 버튼 -->
+            <div class="mt-3.5 pt-2.5 border-t border-green-700/60 flex flex-col gap-2">
+                <button id="explore-more-btn" onclick="enableFreeDragMode()" class="hidden w-full py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-lg shadow-md transition text-center chalkboard-font text-base sm:text-lg">
+                    📐 다른 삼각형도 확인하기 (꼭짓점 드래그)
+                </button>
+            </div>
+        </section>
+
+        <!-- 우측: 모눈패드 SVG 영역 -->
+        <section class="w-full md:w-7/12 lg:w-8/12 flex-1 board-container relative overflow-hidden flex flex-col">
+            
+            <svg id="board" class="w-full h-full infinite-grid">
+                <!-- 무한 모눈 패턴 정의 -->
+                <defs>
+                    <pattern id="smallGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+                    </pattern>
+                    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+                        <rect width="100" height="100" fill="url(#smallGrid)"/>
+                        <path d="M 100 0 L 0 0 0 100" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+                    </pattern>
+                </defs>
+
+                <!-- Zoom & Pan 용 트랜스폼 그룹 -->
+                <g id="viewport">
+                    <rect id="bg-grid" x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid)" />
+
+                    <!-- 레이어 분류 -->
+                    <g id="layer-incircle"></g>
+                    <g id="layer-bisectors"></g>
+                    <g id="layer-perpendiculars"></g>
+                    <g id="layer-right-angles"></g>
+                    <g id="layer-triangle"></g>
+                    <g id="layer-angles"></g>
+                    <g id="layer-points"></g>
+                    <g id="layer-labels"></g>
+                    <g id="layer-interactive"></g>
+                </g>
+            </svg>
+
+            <!-- Zoom 컨트롤 UI -->
+            <div class="absolute bottom-3 right-3 flex flex-col gap-1 bg-black/50 p-1.5 rounded-lg border border-white/20 z-10">
+                <button onclick="zoomIn()" class="w-8 h-8 bg-green-800 hover:bg-green-700 text-white rounded font-bold flex items-center justify-center text-lg shadow">+</button>
+                <button onclick="zoomOut()" class="w-8 h-8 bg-green-800 hover:bg-green-700 text-white rounded font-bold flex items-center justify-center text-lg shadow">-</button>
+                <button onclick="resetZoomPan()" class="w-8 h-8 bg-green-800 hover:bg-green-700 text-white rounded font-bold flex items-center justify-center text-xs shadow" title="화면 맞춤">🎯</button>
+            </div>
+
+            <!-- Toast 팝업 메시지 -->
+            <div id="toast-msg" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-600/90 text-white px-4 py-2 rounded-lg shadow-lg border border-red-300 text-sm font-bold animate-bounce z-50 text-center">
+                안내 메시지
+            </div>
+        </section>
+    </main>
+
+    <script>
+        /* 애플리케이션 상태 관리 */
+        let state = {
+            step: 1,
+            points: [], // [A, B, C]
+            bisectorClicks: { A: false, B: false, C: false },
+            incenter: null,
+            step4Progress: 0, // 0: I선택, 1: AB선택, 2: BC선택, 3: CA선택, 4: 완료
+            feet: { D: null, E: null, F: null },
+            measuredSegments: { ID: false, IE: false, IF: false },
+            freeDragMode: false,
+            draggedPoint: null
+        };
+
+        // Zoom & Pan 상태
+        let transform = { x: 0, y: 0, k: 1 };
+        let isPanning = false;
+        let startPan = { x: 0, y: 0 };
+
+        // DOM 참조
+        const svg = document.getElementById('board');
+        const viewport = document.getElementById('viewport');
+
+        window.onload = () => {
+            initZoomPan();
+            renderStepUI();
+            window.addEventListener('resize', () => renderAll());
+        };
+
+        /* Zoom & Pan 로직 */
+        function initZoomPan() {
+            svg.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+                applyZoom(zoomFactor, e.clientX, e.clientY);
+            }, { passive: false });
+
+            svg.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('interactive-node')) return;
+                isPanning = true;
+                startPan = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (state.draggedPoint !== null) {
+                    handlePointDrag(e);
+                    return;
+                }
+                if (!isPanning) return;
+                transform.x = e.clientX - startPan.x;
+                transform.y = e.clientY - startPan.y;
+                updateTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isPanning = false;
+                state.draggedPoint = null;
+            });
+
+            // 터치 이벤트 대응
+            let initialTouchDist = null;
+            let initialScale = 1;
+
+            svg.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    isPanning = false;
+                    initialTouchDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    initialScale = transform.k;
+                } else if (e.touches.length === 1 && !e.target.classList.contains('interactive-node')) {
+                    isPanning = true;
+                    startPan = { x: e.touches[0].clientX - transform.x, y: e.touches[0].clientY - transform.y };
+                }
+            });
+
+            svg.addEventListener('touchmove', (e) => {
+                if (state.draggedPoint !== null) {
+                    handlePointDrag(e.touches[0]);
+                    if (e.cancelable) e.preventDefault();
+                    return;
+                }
+                if (e.touches.length === 2 && initialTouchDist) {
+                    const currentDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    const factor = currentDist / initialTouchDist;
+                    transform.k = Math.min(Math.max(0.4, initialScale * factor), 25.0);
+                    updateTransform();
+                } else if (isPanning && e.touches.length === 1) {
+                    transform.x = e.touches[0].clientX - startPan.x;
+                    transform.y = e.touches[0].clientY - startPan.y;
+                    updateTransform();
+                }
+            });
+
+            svg.addEventListener('touchend', () => {
+                isPanning = false;
+                initialTouchDist = null;
+                state.draggedPoint = null;
+            });
+
+            svg.addEventListener('click', handleBoardClick);
+        }
+
+        function applyZoom(factor, clientX, clientY) {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            const newK = Math.min(Math.max(0.4, transform.k * factor), 25.0);
+            
+            transform.x = mouseX - (mouseX - transform.x) * (newK / transform.k);
+            transform.y = mouseY - (mouseY - transform.y) * (newK / transform.k);
+            transform.k = newK;
+
+            updateTransform();
+        }
+
+        function zoomIn() { applyZoom(1.2, svg.clientWidth / 2, svg.clientHeight / 2); }
+        function zoomOut() { applyZoom(0.8, svg.clientWidth / 2, svg.clientHeight / 2); }
+        function resetZoomPan() {
+            transform = { x: 0, y: 0, k: 1 };
+            updateTransform();
+        }
+
+        function updateTransform() {
+            viewport.setAttribute('transform', `translate(${transform.x}, ${transform.y}) scale(${transform.k})`);
+            renderAll();
+        }
+
+        function screenToSvgCoords(clientX, clientY) {
+            const rect = svg.getBoundingClientRect();
+            const x = (clientX - rect.left - transform.x) / transform.k;
+            const y = (clientY - rect.top - transform.y) / transform.k;
+            return { x, y };
+        }
+
+        /* 클릭 및 기하학 계산 */
+        function handleBoardClick(e) {
+            if (isPanning) return;
+            const pos = screenToSvgCoords(e.clientX, e.clientY);
+
+            if (state.step === 1) {
+                if (state.points.length < 3) {
+                    const gridX = Math.round(pos.x / 20) * 20;
+                    const gridY = Math.round(pos.y / 20) * 20;
+
+                    if (state.points.some(p => p.x === gridX && p.y === gridY)) return;
+
+                    const labels = ['A', 'B', 'C'];
+                    state.points.push({ x: gridX, y: gridY, label: labels[state.points.length] });
+
+                    if (state.points.length === 3) {
+                        if (isCollinear(state.points[0], state.points[1], state.points[2])) {
+                            showToast("세 점이 일직선 위에 있어 삼각형을 만들 수 없습니다.\n다시 점을 찍어주세요!");
+                            state.points = [];
+                        } else {
+                            state.step = 2;
+                            calculateIncenter();
+                        }
+                    }
+                    renderStepUI();
+                    renderAll();
+                }
+            }
+        }
+
+        function isCollinear(p1, p2, p3) {
+            const area = Math.abs((p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y)));
+            return area < 1;
+        }
+
+        function calculateIncenter() {
+            const [A, B, C] = state.points;
+            const a = Math.hypot(B.x - C.x, B.y - C.y);
+            const b = Math.hypot(A.x - C.x, A.y - C.y);
+            const c = Math.hypot(A.x - B.x, A.y - B.y);
+
+            const P = a + b + c;
+            const Ix = (a * A.x + b * B.x + c * C.x) / P;
+            const Iy = (a * A.y + b * B.y + c * C.y) / P;
+
+            state.incenter = { x: Ix, y: Iy, label: 'I' };
+
+            state.feet.D = getPerpendicularFoot(state.incenter, A, B, 'D');
+            state.feet.E = getPerpendicularFoot(state.incenter, B, C, 'E');
+            state.feet.F = getPerpendicularFoot(state.incenter, C, A, 'F');
+        }
+
+        function getPerpendicularFoot(P, A, B, label) {
+            const dx = B.x - A.x;
+            const dy = B.y - A.y;
+            const lenSq = dx * dx + dy * dy;
+            const t = ((P.x - A.x) * dx + (P.y - A.y) * dy) / lenSq;
+            return {
+                x: A.x + t * dx,
+                y: A.y + t * dy,
+                label: label,
+                lineP1: A,
+                lineP2: B
+            };
+        }
+
+        /* 단계별 UI 동기화 */
+        function renderStepUI() {
+            const badge = document.getElementById('step-badge');
+            const title = document.getElementById('step-title');
+            const desc = document.getElementById('step-desc');
+            const progress = document.getElementById('progress-text');
+            const summaryCard = document.getElementById('summary-card');
+            const exploreBtn = document.getElementById('explore-more-btn');
+
+            badge.innerText = `${state.step}단계 / 5단계`;
+
+            for (let i = 1; i <= 5; i++) {
+                const ind = document.getElementById(`step-ind-${i}`);
+                if (!ind) continue;
+                if (i === state.step) {
+                    ind.className = "py-1 rounded bg-yellow-400 text-black border border-yellow-200 shadow-sm";
+                } else if (i < state.step) {
+                    ind.className = "py-1 rounded bg-emerald-700 text-white border border-emerald-500 opacity-90";
+                } else {
+                    ind.className = "py-1 rounded bg-green-900/80 text-gray-400 border border-green-700 opacity-60";
+                }
+            }
+
+            switch (state.step) {
+                case 1:
+                    title.innerText = "1. 세 꼭짓점을 찍어서 삼각형 그리기";
+                    desc.innerHTML = "모눈 칠판 위에서 서로 다른 위치에 점 3개를 찍어 삼각형 ABC를 완성하세요.";
+                    progress.innerText = `꼭짓점을 찍어주세요 (${state.points.length}/3)`;
+                    summaryCard.classList.add('hidden');
+                    exploreBtn.classList.add('hidden');
+                    break;
+
+                case 2:
+                    title.innerText = "2. 세 꼭짓점을 각각 클릭하여 각의 이등분선 그리기";
+                    desc.innerHTML = "각 꼭짓점 A, B, C를 순서대로 클릭하면 각 내각의 이등분선이 나타납니다.";
+                    const count = Object.values(state.bisectorClicks).filter(Boolean).length;
+                    progress.innerText = `이등분선 그리기 (${count}/3 완료)`;
+                    break;
+
+                case 3:
+                    title.innerText = "3. 세 각의 이등분선의 교점(점 I) 찍기";
+                    desc.innerHTML = "세 각의 이등분선이 한 점에서 만나고 있습니다! 교점을 클릭하여 내심 I를 표시하세요.";
+                    progress.innerText = "교점 위치에 있는 점 I를 클릭하세요.";
+                    break;
+
+                case 4:
+                    title.innerText = "4. 점 I에서 세 변에 내린 수선과 수선의 발 표시하기";
+                    desc.innerHTML = "반짝이는 순서에 맞춰 점 I와 각 변을 클릭하여 수선의 발(D, E, F)을 내리세요.";
+                    
+                    const pTexts = [
+                        "🟡 깜빡이는 [점 I]를 눌러주세요.",
+                        "🟡 깜빡이는 [변 AB]를 눌러 수선 ID를 그리세요.",
+                        "🟡 깜빡이는 [변 BC]를 눌러 수선 IE를 그리세요.",
+                        "🟡 깜빡이는 [변 CA]를 눌러 수선 IF를 그리세요.",
+                        "✅ 모든 수선과 수선의 발이 완성되었습니다!"
+                    ];
+                    progress.innerText = pTexts[state.step4Progress];
+                    break;
+
+                case 5:
+                    title.innerText = "5. 내심에서 세 변까지의 거리 측정하기";
+                    desc.innerHTML = "점 I와 각 수선의 발을 잇는 선분(ID, IE, IF)을 클릭하여 거리를 측정해 보세요.";
+                    const mCount = Object.values(state.measuredSegments).filter(Boolean).length;
+                    progress.innerText = `거리 측정 완료 (${mCount}/3)`;
+                    
+                    if (mCount === 3) {
+                        summaryCard.classList.remove('hidden');
+                        exploreBtn.classList.remove('hidden');
+                    }
+                    break;
+            }
+
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                MathJax.typesetPromise();
+            }
+        }
+
+        /* SVG 그래픽 렌더링 */
+        function renderAll() {
+            clearLayers();
+
+            if (state.points.length > 0) renderPointsAndTriangle();
+            if (state.step >= 2) renderAngleArcsAndBisectors();
+            if (state.step >= 3 && state.incenter) renderIncenter();
+            if (state.step >= 4) renderPerpendicularsAndFeet();
+            if (state.step >= 5) renderIncircleAndMeasurements();
+        }
+
+        function clearLayers() {
+            ['layer-incircle', 'layer-bisectors', 'layer-perpendiculars', 'layer-right-angles', 'layer-triangle', 'layer-angles', 'layer-points', 'layer-labels', 'layer-interactive'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+        }
+
+        function renderPointsAndTriangle() {
+            const lTri = document.getElementById('layer-triangle');
+            const lPts = document.getElementById('layer-points');
+            const lLbl = document.getElementById('layer-labels');
+
+            const k = transform.k;
+            const strokeW = (3 / k).toFixed(2);
+            const pointR = (7 / k).toFixed(2);
+            const fontSize = (16 / k).toFixed(2);
+            const offset = 14 / k;
+
+            if (state.points.length >= 2) {
+                for (let i = 0; i < state.points.length; i++) {
+                    const nextIdx = (i + 1) % state.points.length;
+                    if (nextIdx === 0 && state.points.length < 3) continue;
+
+                    const p1 = state.points[i];
+                    const p2 = state.points[nextIdx];
+
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", p1.x); line.setAttribute("y1", p1.y);
+                    line.setAttribute("x2", p2.x); line.setAttribute("y2", p2.y);
+                    line.setAttribute("stroke", "#ffffff");
+                    line.setAttribute("stroke-width", strokeW);
+                    lTri.appendChild(line);
+
+                    if (state.step === 4) {
+                        if ((state.step4Progress === 1 && ((i===0 && nextIdx===1) || (i===1 && nextIdx===0))) ||
+                            (state.step4Progress === 2 && ((i===1 && nextIdx===2) || (i===2 && nextIdx===1))) ||
+                            (state.step4Progress === 3 && ((i===2 && nextIdx===0) || (i===0 && nextIdx===2)))) {
+                            
+                            const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                            hitArea.setAttribute("x1", p1.x); hitArea.setAttribute("y1", p1.y);
+                            hitArea.setAttribute("x2", p2.x); hitArea.setAttribute("y2", p2.y);
+                            hitArea.setAttribute("stroke", "#ffeb3b");
+                            hitArea.setAttribute("stroke-width", (16 / k).toFixed(2));
+                            hitArea.setAttribute("class", "blink-target interactive-node");
+                            hitArea.onclick = () => advanceStep4();
+                            document.getElementById('layer-interactive').appendChild(hitArea);
+                        }
+                    }
+                }
+            }
+
+            state.points.forEach((p, idx) => {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
+                circle.setAttribute("r", pointR);
+                circle.setAttribute("fill", state.freeDragMode ? "#ffeb3b" : "#ffffff");
+                circle.setAttribute("class", "point-node interactive-node");
+
+                if (state.freeDragMode) {
+                    circle.onmousedown = (e) => { state.draggedPoint = idx; e.stopPropagation(); };
+                    circle.ontouchstart = (e) => { state.draggedPoint = idx; e.stopPropagation(); };
+                }
+
+                lPts.appendChild(circle);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                let lx = p.x;
+                let ly = p.y;
+                if (state.points.length === 3) {
+                    const cx = (state.points[0].x + state.points[1].x + state.points[2].x) / 3;
+                    const cy = (state.points[0].y + state.points[1].y + state.points[2].y) / 3;
+                    const angle = Math.atan2(p.y - cy, p.x - cx);
+                    lx += Math.cos(angle) * offset * 1.5;
+                    ly += Math.sin(angle) * offset * 1.5 + (fontSize / 3);
+                } else {
+                    lx += offset;
+                    ly -= offset;
+                }
+
+                text.setAttribute("x", lx);
+                text.setAttribute("y", ly);
+                text.setAttribute("fill", "#ffeb3b");
+                text.setAttribute("font-size", fontSize);
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("class", "chalkboard-font");
+                text.textContent = p.label;
+                lLbl.appendChild(text);
+
+                if (state.step === 2 && !state.bisectorClicks[p.label]) {
+                    const touchTarget = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    touchTarget.setAttribute("cx", p.x); touchTarget.setAttribute("cy", p.y);
+                    touchTarget.setAttribute("r", (25 / k).toFixed(2));
+                    touchTarget.setAttribute("fill", "rgba(255, 235, 59, 0.3)");
+                    touchTarget.setAttribute("stroke", "#ffeb3b");
+                    touchTarget.setAttribute("stroke-dasharray", `${4/k},${3/k}`);
+                    touchTarget.setAttribute("class", "interactive-node cursor-pointer");
+                    touchTarget.onclick = (e) => {
+                        e.stopPropagation();
+                        clickVertexBisector(p.label);
+                    };
+                    document.getElementById('layer-interactive').appendChild(touchTarget);
+                }
+            });
+        }
+
+        function clickVertexBisector(label) {
+            state.bisectorClicks[label] = true;
+            if (Object.values(state.bisectorClicks).filter(Boolean).length === 3) {
+                state.step = 3;
+            }
+            renderStepUI();
+            renderAll();
+        }
+
+        function renderAngleArcsAndBisectors() {
+            if (state.points.length < 3) return;
+            const [A, B, C] = state.points;
+            const lAng = document.getElementById('layer-angles');
+            const lBis = document.getElementById('layer-bisectors');
+            const k = transform.k;
+
+            const vertices = [
+                { key: 'A', P: A, V1: B, V2: C },
+                { key: 'B', P: B, V1: A, V2: C },
+                { key: 'C', P: C, V1: A, V2: B }
+            ];
+
+            vertices.forEach(({ key, P, V1, V2 }) => {
+                const a1 = Math.atan2(V1.y - P.y, V1.x - P.x);
+                const a2 = Math.atan2(V2.y - P.y, V2.x - P.x);
+
+                const arcRadius = 20 / k;
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                
+                let startAngle = a1;
+                let endAngle = a2;
+                let diff = endAngle - startAngle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+
+                const midAngle = startAngle + diff / 2;
+
+                const x1 = P.x + arcRadius * Math.cos(startAngle);
+                const y1 = P.y + arcRadius * Math.sin(startAngle);
+                const x2 = P.x + arcRadius * Math.cos(endAngle);
+                const y2 = P.y + arcRadius * Math.sin(endAngle);
+
+                const sweepFlag = diff > 0 ? 1 : 0;
+                path.setAttribute("d", `M ${P.x} ${P.y} L ${x1} ${y1} A ${arcRadius} ${arcRadius} 0 0 ${sweepFlag} ${x2} ${y2} Z`);
+                path.setAttribute("fill", "rgba(128, 222, 234, 0.2)");
+                path.setAttribute("stroke", "#80deea");
+                path.setAttribute("stroke-width", (1.5 / k).toFixed(2));
+                lAng.appendChild(path);
+
+                if (state.bisectorClicks[key] || state.step > 2) {
+                    const rayLen = 1000;
+                    const bx = P.x + rayLen * Math.cos(midAngle);
+                    const by = P.y + rayLen * Math.sin(midAngle);
+
+                    const bLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    bLine.setAttribute("x1", P.x); bLine.setAttribute("y1", P.y);
+                    bLine.setAttribute("x2", bx); bLine.setAttribute("y2", by);
+                    bLine.setAttribute("stroke", "#80deea");
+                    bLine.setAttribute("stroke-width", (2 / k).toFixed(2));
+                    bLine.setAttribute("stroke-dasharray", `${6/k},${4/k}`);
+                    lBis.appendChild(bLine);
+                }
+            });
+        }
+
+        function renderIncenter() {
+            if (!state.incenter) return;
+            const I = state.incenter;
+            const lPts = document.getElementById('layer-points');
+            const lLbl = document.getElementById('layer-labels');
+            const k = transform.k;
+
+            if (state.step === 3) {
+                const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                node.setAttribute("cx", I.x); node.setAttribute("cy", I.y);
+                node.setAttribute("r", (12 / k).toFixed(2));
+                node.setAttribute("fill", "#ffeb3b");
+                node.setAttribute("class", "blink-target interactive-node");
+                node.onclick = (e) => {
+                    e.stopPropagation();
+                    state.step = 4;
+                    renderStepUI();
+                    renderAll();
+                };
+                document.getElementById('layer-interactive').appendChild(node);
+            } else {
+                const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                node.setAttribute("cx", I.x); node.setAttribute("cy", I.y);
+                node.setAttribute("r", (7 / k).toFixed(2));
+                node.setAttribute("fill", "#ff80ab");
+                lPts.appendChild(node);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", I.x + 10 / k); text.setAttribute("y", I.y - 10 / k);
+                text.setAttribute("fill", "#ff80ab");
+                text.setAttribute("font-size", (16 / k).toFixed(2));
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("class", "chalkboard-font");
+                text.textContent = "I";
+                lLbl.appendChild(text);
+            }
+
+            if (state.step === 4 && state.step4Progress === 0) {
+                const nodeHit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                nodeHit.setAttribute("cx", I.x); nodeHit.setAttribute("cy", I.y);
+                nodeHit.setAttribute("r", (20 / k).toFixed(2));
+                nodeHit.setAttribute("fill", "#ffeb3b");
+                nodeHit.setAttribute("class", "blink-target interactive-node");
+                nodeHit.onclick = (e) => {
+                    e.stopPropagation();
+                    advanceStep4();
+                };
+                document.getElementById('layer-interactive').appendChild(nodeHit);
+            }
+        }
+
+        function advanceStep4() {
+            state.step4Progress++;
+            if (state.step4Progress === 4) {
+                state.step = 5;
+            }
+            renderStepUI();
+            renderAll();
+        }
+
+        function renderPerpendicularsAndFeet() {
+            const I = state.incenter;
+            const lPerp = document.getElementById('layer-perpendiculars');
+            const lRA = document.getElementById('layer-right-angles');
+            const lPts = document.getElementById('layer-points');
+            const lLbl = document.getElementById('layer-labels');
+            const k = transform.k;
+
+            const feetData = [
+                { foot: state.feet.D, show: state.step4Progress >= 2, key: 'ID' },
+                { foot: state.feet.E, show: state.step4Progress >= 3, key: 'IE' },
+                { foot: state.feet.F, show: state.step4Progress >= 4, key: 'IF' }
+            ];
+
+            feetData.forEach(({ foot, show, key }) => {
+                if (show && foot) {
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", I.x); line.setAttribute("y1", I.y);
+                    line.setAttribute("x2", foot.x); line.setAttribute("y2", foot.y);
+                    line.setAttribute("stroke", "#ff80ab");
+                    line.setAttribute("stroke-width", (2.5 / k).toFixed(2));
+                    lPerp.appendChild(line);
+
+                    renderRightAngleMarker(lRA, foot, I, foot.lineP1, k);
+
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", foot.x); circle.setAttribute("cy", foot.y);
+                    circle.setAttribute("r", (7 / k).toFixed(2));
+                    circle.setAttribute("fill", "#ff80ab");
+                    lPts.appendChild(circle);
+
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("x", foot.x + 8 / k); text.setAttribute("y", foot.y + 8 / k);
+                    text.setAttribute("fill", "#ff80ab");
+                    text.setAttribute("font-size", (14 / k).toFixed(2));
+                    text.setAttribute("class", "chalkboard-font");
+                    text.textContent = foot.label;
+                    lLbl.appendChild(text);
+
+                    if (state.step === 5) {
+                        const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                        hitArea.setAttribute("x1", I.x); hitArea.setAttribute("y1", I.y);
+                        hitArea.setAttribute("x2", foot.x); hitArea.setAttribute("y2", foot.y);
+                        hitArea.setAttribute("stroke", state.measuredSegments[key] ? "rgba(255, 235, 59, 0.25)" : "rgba(255, 255, 255, 0.01)");
+                        hitArea.setAttribute("stroke-width", (12 / k).toFixed(2));
+                        hitArea.setAttribute("stroke-linecap", "round");
+                        hitArea.setAttribute("class", "interactive-node cursor-pointer");
+                        hitArea.onclick = (e) => {
+                            e.stopPropagation();
+                            state.measuredSegments[key] = true;
+                            renderStepUI();
+                            renderAll();
+                        };
+                        document.getElementById('layer-interactive').appendChild(hitArea);
+
+                        if (state.measuredSegments[key]) {
+                            const highlight = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                            highlight.setAttribute("x1", I.x); highlight.setAttribute("y1", I.y);
+                            highlight.setAttribute("x2", foot.x); highlight.setAttribute("y2", foot.y);
+                            highlight.setAttribute("stroke", "#ffeb3b");
+                            highlight.setAttribute("stroke-width", (3 / k).toFixed(2));
+                            lPerp.appendChild(highlight);
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderRightAngleMarker(parent, Foot, Incenter, P1, k) {
+            const size = 10 / k;
+            
+            const v1x = Incenter.x - Foot.x;
+            const v1y = Incenter.y - Foot.y;
+            const len1 = Math.hypot(v1x, v1y);
+            if (len1 === 0) return;
+            const u1x = (v1x / len1) * size;
+            const u1y = (v1y / len1) * size;
+
+            const v2x = P1.x - Foot.x;
+            const v2y = P1.y - Foot.y;
+            const len2 = Math.hypot(v2x, v2y);
+            if (len2 === 0) return;
+            const u2x = (v2x / len2) * size;
+            const u2y = (v2y / len2) * size;
+
+            const p1x = Foot.x + u1x;
+            const p1y = Foot.y + u1y;
+
+            const p2x = Foot.x + u1x + u2x;
+            const p2y = Foot.y + u1y + u2y;
+
+            const p3x = Foot.x + u2x;
+            const p3y = Foot.y + u2y;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M ${p1x} ${p1y} L ${p2x} ${p2y} L ${p3x} ${p3y}`);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", "#ff80ab");
+            path.setAttribute("stroke-width", (1.5 / k).toFixed(2));
+            parent.appendChild(path);
+        }
+
+        function renderIncircleAndMeasurements() {
+            const I = state.incenter;
+            if (!I || !state.feet.D) return;
+
+            const radius = Math.hypot(I.x - state.feet.D.x, I.y - state.feet.D.y);
+            const lIncircle = document.getElementById('layer-incircle');
+            const lLbl = document.getElementById('layer-labels');
+            const k = transform.k;
+
+            const segs = [
+                { foot: state.feet.D, key: 'ID' },
+                { foot: state.feet.E, key: 'IE' },
+                { foot: state.feet.F, key: 'IF' }
+            ];
+
+            segs.forEach(({ foot, key }) => {
+                if (state.measuredSegments[key]) {
+                    const midX = (I.x + foot.x) / 2;
+                    const midY = (I.y + foot.y) / 2;
+
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("x", midX + 8 / k); 
+                    text.setAttribute("y", midY - 8 / k);
+                    text.setAttribute("fill", "#ffeb3b");
+                    text.setAttribute("font-size", (14 / k).toFixed(2));
+                    text.setAttribute("font-weight", "bold");
+                    text.setAttribute("class", "chalkboard-font");
+                    
+                    const val = (radius / 20).toFixed(1);
+
+                    const tspanSeg = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+                    tspanSeg.setAttribute("style", "text-decoration: overline;");
+                    tspanSeg.textContent = key;
+
+                    const tspanVal = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+                    tspanVal.textContent = ` = ${val}`;
+
+                    text.appendChild(tspanSeg);
+                    text.appendChild(tspanVal);
+                    lLbl.appendChild(text);
+                }
+            });
+
+            if (Object.values(state.measuredSegments).every(Boolean)) {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", I.x); circle.setAttribute("cy", I.y);
+                circle.setAttribute("r", radius);
+                circle.setAttribute("fill", "rgba(255, 235, 59, 0.15)");
+                circle.setAttribute("stroke", "#ffeb3b");
+                circle.setAttribute("stroke-width", (2 / k).toFixed(2));
+                circle.setAttribute("stroke-dasharray", `${4/k},${4/k}`);
+                lIncircle.appendChild(circle);
+            }
+        }
+
+        /* 자유 드래그 탐구 모드 */
+        function enableFreeDragMode() {
+            state.freeDragMode = true;
+            showToast("꼭짓점을 마우스나 손가락으로 드래그하여 이동시켜보세요!");
+            renderAll();
+        }
+
+        function handlePointDrag(e) {
+            if (state.draggedPoint === null) return;
+            const pos = screenToSvgCoords(e.clientX, e.clientY);
+            
+            // 20단위 격자 스냅 대신 1px 단위의 연속적인 부드러운 이동 제공
+            const gridX = Math.round(pos.x);
+            const gridY = Math.round(pos.y);
+
+            const tempPoints = [...state.points];
+            tempPoints[state.draggedPoint] = { ...tempPoints[state.draggedPoint], x: gridX, y: gridY };
+
+            if (!isCollinear(tempPoints[0], tempPoints[1], tempPoints[2])) {
+                state.points[state.draggedPoint].x = gridX;
+                state.points[state.draggedPoint].y = gridY;
+                calculateIncenter();
+                renderAll();
+            }
+        }
+
+        /* 유틸리티 기능 */
+        function showToast(msg) {
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        function resetApp() {
+            state = {
+                step: 1,
+                points: [],
+                bisectorClicks: { A: false, B: false, C: false },
+                incenter: null,
+                step4Progress: 0,
+                feet: { D: null, E: null, F: null },
+                measuredSegments: { ID: false, IE: false, IF: false },
+                freeDragMode: false,
+                draggedPoint: null
+            };
+            resetZoomPan();
+            renderStepUI();
+            renderAll();
+        }
+    </script>
+</body>
+</html>
